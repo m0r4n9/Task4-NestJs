@@ -10,9 +10,47 @@ export class BrandsService {
         @InjectModel(Brand.name) private brandModel: Model<BrandDocument>,
     ) {}
 
+    async performAggregationPipeline() {
+        const pipeline = [
+            {
+                $lookup: {
+                    from: "products",
+                    localField: "_id",
+                    foreignField: "brandId",
+                    as: "products",
+                },
+            },
+            {
+                $project: {
+                    name: 1,
+                    productCount: { $size: "$products" },
+                },
+            },
+        ];
+
+        const brandInfo = await this.brandModel.aggregate(pipeline);
+        return brandInfo;
+    }
+
     async create(dto: CreateBrandDto) {
         const brand = await this.brandModel.create(dto);
         return brand;
+    }
+
+    async deleteBrand(brandId: string) {
+        const deleted = await this.brandModel.findByIdAndRemove(brandId).exec();
+        return deleted;
+    }
+
+    async updateBrand(brandId: string, updateBrandDto: BrandDocument) {
+        const updatedBrand = await this.brandModel.findByIdAndUpdate(
+            brandId,
+            updateBrandDto,
+            {
+                new: true,
+            },
+        );
+        return updatedBrand;
     }
 
     findAll() {
